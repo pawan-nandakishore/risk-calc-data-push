@@ -26,8 +26,8 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run python scripts
       run: |
-        export covid_s3_access_key = ${{ secrets.COVID_S3_ACCESS_KEY }}
-        export covid_s3_token = ${{ secrets.COVID_S3_TOKEN }}
-        export bucket_name = ${{ secrets.BUCKET_NAME }}
-        export data_file = ${{ secrets.DATA_FILE }}
+        export covid_s3_access_key=${{ secrets.COVID_S3_ACCESS_KEY }}
+        export covid_s3_token=${{ secrets.COVID_S3_TOKEN }}
+        export bucket_name=${{ secrets.BUCKET_NAME }}
+        export data_file=${{ secrets.DATA_FILE }}
         python risk_calculator_data.py
