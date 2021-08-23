@@ -30,6 +30,8 @@ jobs:
         export covid_s3_token=${{ secrets.COVID_S3_TOKEN }}
         export bucket_name=${{ secrets.BUCKET_NAME }}
         export data_file=${{ secrets.DATA_FILE }}
+        echo bucket_name
+        echo data_file
     - name: Run python scripts
       run: |
         python risk_calculator_data.py

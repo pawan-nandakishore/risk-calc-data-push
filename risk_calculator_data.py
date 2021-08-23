@@ -13,7 +13,7 @@ load_dotenv()
 access_token = os.getenv("covid_s3_access_key")
 secret_key = os.getenv("covid_s3_token")
 bucket_name = os.getenv("bucket_name")
-data_file = os.getenv("data_file")
+file_name = os.getenv("data_file")
 
 
 # Main source for the training data
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     
     start_time = time.time()
     # Get population data
-    population_df = pd.read_csv(data_file)
+    population_df = pd.read_csv(file_name)
 
     # Get dictionary of states for a given country
     country_subdivisons = get_country_states()
