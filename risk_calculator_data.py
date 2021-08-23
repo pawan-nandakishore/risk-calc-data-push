@@ -135,7 +135,7 @@ def get_strains_world(start_date = '2020-01-01', end_day = None):
             new_strains_df = new_strains_df.append(location_strains_df, ignore_index=True)
             print("Reading data for {}".format(location))
         else:
-            print(f'¸No data available for {location}')
+            print(f'¸No data available for {location} response {response}')
             
     return new_strains_df
 
@@ -179,7 +179,7 @@ def get_states_strains(country, country_subdivisons, start_date = '2020-01-01', 
                 location_strains_df = pd.merge(location_strains_df, df_lineage_subset, left_on="Date", right_on="Date", how='left')
             new_strains_df = new_strains_df.append(location_strains_df, ignore_index=True)
         else:
-            print(f'!!! No data available for {location} !!!')
+            print(f'!!! No data available for {location} {response} !!!')
             
     return new_strains_df
 
