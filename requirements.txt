@@ -1,0 +1,9 @@
+pandas
+python-dotenv
+requests
+pycountry
+scipy
+boto3
+us
+tqdm
+scipy
