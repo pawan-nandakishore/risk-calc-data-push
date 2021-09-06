@@ -15,9 +15,24 @@ secret_key = os.getenv("covid_s3_token")
 bucket_name = os.getenv("bucket_name")
 file_name = os.getenv("data_file")
 
+
+# Main source for the training data
+DATA_URL = 'https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv'
+# Latest Oxford data
+DATA_FILE = 'processed/risk-calculator-data/OxCGRT_latest.csv'
+
+
 # Initalize the s3 client to push data to s3 
 s3_client = boto3.client('s3', aws_access_key_id=access_token, aws_secret_access_key=secret_key)
 
+# Get the oxford file
+obj = s3_client.get_object(Bucket=bucket_name, Key=DATA_FILE)    
+oxford_data = pd.read_csv(io.BytesIO(obj['Body'].read()), 
+                    parse_dates=['Date'],
+                    encoding="ISO-8859-1",
+                    dtype={"RegionName": str,
+                            "RegionCode": str},
+                    error_bad_lines=False)
 
 #### FUNCTIONS  ##########
 def df_to_s3(df, s3_client, bucket_name, save_full_path):
@@ -87,6 +102,42 @@ def get_country_states():
     return countries_subdivisons
 
 
+def get_strains_world(start_date = '2020-01-01', end_day = None):
+    
+    new_strains_df = pd.DataFrame()
+
+    dates = pd.date_range(start=start_date,end=end_day)
+    dates = pd.DataFrame({'Date':dates})
+    
+    new_strains_df = pd.DataFrame()
+    n_days = len(dates)
+
+    #Get lineages WORLD
+    for location in oxford_data.CountryCode.unique():
+        country_name = oxford_data.loc[oxford_data.CountryCode == location, 'CountryName']
+        response = requests.get(f'https://api.outbreak.info/genomics/prevalence-by-location-all-lineages?location_id={location}&ndays={n_days}').text
+        if(json.loads(response)["success"]):
+            results =  json.loads(response)['results']
+            results_df = pd.DataFrame.from_dict(results)
+            location_strains_df = dates.copy()
+            population = population_df.loc[population_df.CountryCode == location,'Population'].max()
+            location_strains_df['CountryCode'] = location
+            location_strains_df['CountryName'] = country_name.iloc[0]
+            location_strains_df['Population'] = population
+            for lineage in results_df.lineage.unique():
+                df_lineage = results_df.loc[results_df.lineage == lineage]
+                new_strain = pd.DataFrame()
+                new_strain['Date'] = pd.to_datetime(df_lineage['date'])
+                prevalence = df_lineage['prevalence_rolling'].fillna(0)
+                location_strains_df  = location_strains_df.merge(new_strain, how='left')
+                prevalence14 = prevalence.fillna(0).rolling(14).mean()
+                location_strains_df[f'prevalence_gaussian5_{lineage}'] = pd.Series(gaussian_filter1d(prevalence14.fillna(0),5))
+            new_strains_df = new_strains_df.append(location_strains_df, ignore_index=True)
+            print("Reading data for {}".format(location))
+        else:
+            print(f'¸No data available for {location} response {response}')
+            
+    return new_strains_df
 
 
 
@@ -140,6 +191,7 @@ if __name__ == "__main__":
 
     # Get dictionary of states for a given country
     country_subdivisons = get_country_states()
+
 
     # Get today's date
     today = datetime.today().strftime('%Y-%m-%d')
