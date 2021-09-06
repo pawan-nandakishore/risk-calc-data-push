@@ -30,4 +30,13 @@ jobs:
         export covid_s3_token=${{ secrets.COVID_S3_TOKEN }}
         export bucket_name=${{ secrets.BUCKET_NAME }}
         export data_file=${{ secrets.DATA_FILE }}
-        python risk_calculator_data.py
+        python risk_calculator_us_only.py
+    - name: Push changes
+      run: |
+          git config --global user.name 'pawan-nandakishore'
+          git config --global user.email 'pawan.nandakishore@gmail.com'
+          git add .
+          git commit --allow-empty -am "Automated report"
+          git push
+
+
