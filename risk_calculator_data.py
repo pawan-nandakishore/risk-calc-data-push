@@ -183,6 +183,66 @@ def get_states_strains(country, country_subdivisons, start_date = '2020-01-01', 
             
     return new_strains_df
 
+
+
+def get_variant_data(all_data):
+    """ Generate a new dataset from add data containing the total prevalences 
+        for the greek alphabet variants: 
+            Alpha: Class of B.117 variants
+            Beta: Class of B.1.351 variants
+            Gamma: Class of P.1 variants
+            Delta: Class of AY variants plus B.1.617.2 
+
+    Parameters
+    ----------
+    all_data : dataframe
+        Contains the gaussian smoothed prevalence data for all variants
+        for all countries from beginning of 2020 to current date
+
+    Returns
+    -------
+    Dataframe
+        Returns a dataframe containing the variants total for the greek alphabet variants, 
+        date, population, conuntry code and country name
+    """
+    all_data_columns = all_data.columns.tolist()
+
+    # Alpha variant  = prevalence_gaussian5_b.1.1.7
+    alpha_variant = all_data['prevalence_gaussian5_b.1.1.7']
+
+    # Beta variant - all the B.1.351 variants data 
+    beta_names = [x for x in all_data_columns if "_b.1.351" in x]
+    beta_variant = all_data[beta_names]
+    beta_variant = beta_variant.sum(axis=1)
+
+    # gamma variant - all the P1 family of variants info
+    base_name = "prevalence_gaussian5_p.1"
+    gamma_names = [x for x in all_data_columns if base_name in x]
+    gamma_variant = all_data[gamma_names]
+    gamma_variant = gamma_variant.sum(axis=1)
+
+    # Delta variant - B.1.617.2 and all the AY family of variants
+    base_variant = "prevalence_gaussian5_b.1.617.2"
+    delta_names = [x for x in all_data_columns if "_ay." in x]
+    delta_names.append(base_variant)
+    delta_variant = all_data[delta_names].sum(axis=1)
+
+    all_concat= [all_data["Date"].astype(str),
+                 all_data['CountryCode'], 
+                 all_data['CountryName'], 
+                 all_data['Population'], 
+                 alpha_variant, 
+                 beta_variant, 
+                 gamma_variant, 
+                 delta_variant]
+
+    column_names = ['Date', "CountryCode", "CountryName", "Population", "Alpha", "Beta", "Gamma", "Delta"]
+    all_data_new = pd.DataFrame(all_concat, index=column_names).T
+    
+    return all_data_new 
+
+
+
 if __name__ == "__main__": 
     
     start_time = time.time()
@@ -197,27 +257,23 @@ if __name__ == "__main__":
     today = datetime.today().strftime('%Y-%m-%d')
 
     # Pull data for all countries in the world
-    world_data = get_strains_world(start_date = '2020-01-01', end_day=today)
+    all_data = get_strains_world(start_date = '2020-01-01', end_day=today)
 
-    # Pull data for states of the countries in the countries list
-    countries_list = ["United States of America", "India", "Brazil", "Canada"]
-    data_dfs = []
-    for country in countries_list:
-        df = get_states_strains(country, country_subdivisons, start_date='2020-01-01', end_day=today)
-        data_dfs.append(df)
+    # Get data for greek alphabet variants 
+    all_data_new = get_variant_data(all_data)
 
-    # Concat the states data
-    all_data = pd.concat(data_dfs)
 
-    # Concat the states data with the world data 
-    all_data = pd.concat([world_data, all_data])
+    # Save path for the S3 file of regular variants 
+    save_full_path_regular = 'processed/risk-calculator-data/all_countries_regular_variants.csv'
 
-    # Save path for the S3 file 
-    save_full_path = 'processed/risk-calculator-data/OxCGRT_latest.csv'
+    # Save path for the S3 file for greek alphabet variants
+    save_full_path_greek = 'processed/risk-calculator-data/all_countries_galphabet_variants.csv'
 
     # This function pushes the data to S3. Refer to the docstring for more details
-    df_to_s3(all_data, s3_client, bucket_name, save_full_path)
+    df_to_s3(all_data, s3_client, bucket_name, save_full_path_regular)
 
+    # This function pushes the data to S3. Refer to the docstring for more details
+    df_to_s3(all_data_new, s3_client, bucket_name, save_full_path_greek)
 
     end_time = time.time() - start_time 
 

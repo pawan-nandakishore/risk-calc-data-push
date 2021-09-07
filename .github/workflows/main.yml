@@ -27,7 +27,7 @@ jobs:
         export covid_s3_token=${{ secrets.COVID_S3_TOKEN }}
         export bucket_name=${{ secrets.BUCKET_NAME }}
         export data_file=${{ secrets.DATA_FILE }}
-        python risk_calculator_us_only.py
+        python risk_calculator_cases_deaths.py
     - name: Push changes to us states
       run: |
           git config --global user.name 'pawan-nandakishore'
